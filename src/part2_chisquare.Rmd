@@ -45,7 +45,7 @@ And for fun, let's find the counts of each lizard species in the data:
 ```{r}
 lizards %>% 
   count(spp) %>% 
-  arrange(-n)
+  arrange(-n)      # arrange in decreasing order of n
 ```
 
 The most commonly observed lizard here (UTST) is *Uta stansburiana*, or commonly the side-blotched lizard. We'll continue by exploring just that lizard. 
@@ -62,7 +62,7 @@ Make a subset from `lizards` that only contains observations for:
 utst <- lizards %>% 
   filter(spp == "UTST") %>% 
   filter(site %in% c("IBPE","RABB","EAST")) %>% 
-  filter(tail %in% c("B","W"))
+  filter(tail %in% c("B","W"))     # could do all in the same line
 ```
 
 ## Find counts & proportions, put in a table
@@ -70,14 +70,17 @@ utst <- lizards %>%
 The `janitor::tabyl()` function gets this pretty close to contingency table format...
 
 ```{r}
+utst %>% 
+  count(site, tail)  # long format table, doesn't look great because two rows of "EAST", ... better for data analysis but not presentation or chi-squared test function
+
 tail_counts <- utst %>% 
-  janitor::tabyl(site, tail)
+  janitor::tabyl(site, tail)   # better for presentation or chi-squared test function
 
 # And you can get a table with both counts & proportions! 
-tail_proportions <- tail_counts %>% 
-  adorn_percentages() %>% 
+tail_proportions <- tail_counts %>%            # could have piped directly into this
+  janitor::adorn_percentages() %>%      # chi-squared is there a significant difference between proportions
   janitor::adorn_pct_formatting(digits = 2) %>% 
-  adorn_ns()
+  janitor::adorn_ns()  # then can use KableExtra and rownames
 ```
 
 ## Make contingency table and run chi-square
@@ -88,17 +91,18 @@ We can use `column_to_rownames` to convert entries in a column to stored rowname
 
 ```{r}
 lizard_ct <- tail_counts %>% 
-  column_to_rownames(var = "site")
+  column_to_rownames(var = "site")   # sort of changes variable to observation
 ```
 
 **Now** this is in shape to run chi-square. 
 
 What are we asking? Are site and tail breakage independent? In other words: is there a significant association between site and tail breakage? 
-```{r}
-lizard_x2 <- chisq.test(lizard_ct)
-lizard_x2
 
-lizard_tidy <- tidy(lizard_x2)
+```{r}
+lizard_x2 <- chisq.test(lizard_ct)   # from R, df = (#rows -1)*(#col-1) (parameter term)
+lizard_x2    #  there is significant correlation effect on site and tail breakage - non-independence
+
+lizard_tidy <- tidy(lizard_x2)  # table 
 ```
 There is a significant association between site and lizard tail breakage ($\chi$^2^(`r lizard_tidy$parameter`) = `r round(lizard_tidy$statistic,2)`, *p* = `r round(lizard_tidy$p.value, 3)`). 
 
